@@ -10,15 +10,7 @@ class BluetoothProvider extends ChangeNotifier {
   bool _bluetoothState = false; // Estado del Bluetooth
   bool _isConnected = false; // Estado de la conexión Bluetooth
   BluetoothConnection? _connection; // Conexión Bluetooth
-  List<BluetoothDevice> _devices = [
-    BluetoothDevice(
-      name: "Dispositivo 1",
-      address: "00:11:22:33:44:55",
-      isConnected: true,
-    ),
-    BluetoothDevice(name: "Dispositivo 2", address: "66:77:88:99:AA:BB"),
-    BluetoothDevice(name: "Dispositivo 3", address: "CC:DD:EE:FF:00:11"),
-  ]; // Lista de dispositivos Bluetooth
+  List<BluetoothDevice> _devices = []; // Lista de dispositivos Bluetooth
   BluetoothDevice? _selectedDevice; // Dispositivo seleccionado
 
   final StreamController<bool> _connectionStateController =
@@ -67,6 +59,8 @@ class BluetoothProvider extends ChangeNotifier {
     await Permission.bluetooth.request();
     await Permission.bluetoothScan.request();
     await Permission.bluetoothConnect.request();
+    await Permission.bluetoothAdvertise.request();
+    await Permission.bluetoothScan.request();
   }
 
   Future<void> getBondedDevices() async {
@@ -119,6 +113,9 @@ class BluetoothProvider extends ChangeNotifier {
     if (_connection?.isConnected ?? false) {
       _connection?.output.add(ascii.encode(data));
     }
+
+    print("Datos enviados: $data");
+    print("Datos codificados: ${ascii.encode(data)}");
   }
 
   void receiveData() {

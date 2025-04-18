@@ -83,11 +83,10 @@ class _BoardScreenState extends State<BoardScreen> {
           pressButtons.remove(index);
         } else {
           pressButtons.add(index);
-          bluetoothProvider.sendData(
-            'Tarjeta en posición: Fila ${index ~/ 3}, Columna ${index % 3}',
-          );
         }
       });
+
+      bluetoothProvider.sendData('${index ~/ 3}${index % 3}');
 
       // Mostrar la posición de la tarjeta
       ScaffoldMessenger.of(context).showSnackBar(
