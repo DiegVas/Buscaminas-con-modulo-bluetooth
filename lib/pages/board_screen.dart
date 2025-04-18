@@ -77,27 +77,24 @@ class _BoardScreenState extends State<BoardScreen> {
         context,
         listen: false,
       );
+
       setState(() {
         // Si ya estaba presionado, lo quitamos del set, sino lo agregamos
-        if (pressButtons.contains(index)) {
-          pressButtons.remove(index);
-        } else {
+        if (!pressButtons.contains(index)) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Tarjeta en posición: Fila ${index ~/ 3}, Columna ${index % 3}',
+              ),
+              duration: const Duration(seconds: 1),
+              backgroundColor: Colors.yellow,
+            ),
+          );
           pressButtons.add(index);
+          bluetoothProvider.sendData('${index ~/ 4}${index % 4}');
         }
+        //pressButtons.remove(index);
       });
-
-      bluetoothProvider.sendData('${index ~/ 3}${index % 3}');
-
-      // Mostrar la posición de la tarjeta
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Tarjeta en posición: Fila ${index ~/ 3}, Columna ${index % 3}',
-          ),
-          duration: const Duration(seconds: 1),
-          backgroundColor: Colors.yellow,
-        ),
-      );
     }
 
     return Scaffold(

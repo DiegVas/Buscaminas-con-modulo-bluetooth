@@ -111,11 +111,10 @@ class BluetoothProvider extends ChangeNotifier {
 
   void sendData(String data) {
     if (_connection?.isConnected ?? false) {
+      print("Conectado a: ${_selectedDevice?.name}");
       _connection?.output.add(ascii.encode(data));
     }
-
-    print("Datos enviados: $data");
-    print("Datos codificados: ${ascii.encode(data)}");
+    print(_connection);
   }
 
   void receiveData() {

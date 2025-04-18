@@ -93,11 +93,9 @@ class DeviceItem extends StatelessWidget {
           listen: false,
         );
         if (isConnected) {
-          bluetoothProvider.setSelectedDevice(device);
-          Navigator.pop(context, device);
-        } else {
           bluetoothProvider.connectToDevice(device);
-        }
+          Navigator.pop(context, device);
+        } else {}
       },
       child: Container(
         margin: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
