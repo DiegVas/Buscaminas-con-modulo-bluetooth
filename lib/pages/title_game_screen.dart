@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:proyect_orga/Provider/bluetooth_provider.dart';
+import 'package:proyect_orga/pages/board_screen.dart';
 import 'package:proyect_orga/pages/bluetooth_divice.dart';
 import 'package:proyect_orga/widgets/bluetooth_of.dart';
 
@@ -33,7 +33,12 @@ class _TitleGameScreenState extends State<TitleGameScreen> {
           },
         );
 
-        if (device != null) {}
+        if (device == null) return;
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => BoardScreen()),
+        );
       }
     }
 

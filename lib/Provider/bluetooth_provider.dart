@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
@@ -19,6 +20,10 @@ class BluetoothProvider extends ChangeNotifier {
     BluetoothDevice(name: "Dispositivo 3", address: "CC:DD:EE:FF:00:11"),
   ]; // Lista de dispositivos Bluetooth
   BluetoothDevice? _selectedDevice; // Dispositivo seleccionado
+
+  final StreamController<bool> _connectionStateController =
+      StreamController<bool>.broadcast();
+  Stream<bool> get connectionStateStream => _connectionStateController.stream;
 
   bool get bluetoothState => _bluetoothState;
   bool get isConnected => _isConnected;
@@ -78,7 +83,16 @@ class BluetoothProvider extends ChangeNotifier {
       _connection = await BluetoothConnection.toAddress(device.address);
       _isConnected = true;
       _selectedDevice = device;
+      _connectionStateController.add(true); // Emitir evento de conexión
       notifyListeners();
+
+      // Escuchar el estado de la conexión
+      _connection?.input?.listen(null).onDone(() {
+        _isConnected = false;
+        _selectedDevice = null;
+        _connectionStateController.add(false); // Emitir evento de desconexión
+        notifyListeners();
+      });
     } catch (e) {
       debugPrint("Error al conectar al dispositivo: $e");
     }
@@ -90,8 +104,15 @@ class BluetoothProvider extends ChangeNotifier {
       _connection = null;
       _isConnected = false;
       _selectedDevice = null;
+      _connectionStateController.add(false); // Emitir evento de desconexión
       notifyListeners();
     }
+  }
+
+  @override
+  void dispose() {
+    _connectionStateController.close();
+    super.dispose();
   }
 
   void sendData(String data) {
