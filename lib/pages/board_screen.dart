@@ -91,7 +91,7 @@ class _BoardScreenState extends State<BoardScreen> {
             ),
           );
           pressButtons.add(index);
-          bluetoothProvider.sendData('${index ~/ 4}${index % 4}');
+          bluetoothProvider.sendData('${index}${index}');
         }
         //pressButtons.remove(index);
       });

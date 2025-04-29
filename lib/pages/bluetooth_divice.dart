@@ -87,15 +87,17 @@ class DeviceItem extends StatelessWidget {
     final bool isConnected = device.isConnected;
 
     return InkWell(
-      onTap: () {
+      onTap: () async {
         final bluetoothProvider = Provider.of<BluetoothProvider>(
           context,
           listen: false,
         );
         if (isConnected) {
-          bluetoothProvider.connectToDevice(device);
+          await bluetoothProvider.connectToDevice(device);
           Navigator.pop(context, device);
-        } else {}
+        } else {
+          await bluetoothProvider.connectToDevice(device);
+        }
       },
       child: Container(
         margin: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
