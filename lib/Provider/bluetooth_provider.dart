@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:ffi';
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -97,8 +98,7 @@ class BluetoothProvider extends ChangeNotifier {
             receivedData,
           ); // Emitir datos a los widgets
           debugPrint("Datos recibidos: $receivedData");
-          print("Conectado a: ${device.name}");
-          print("Datos recibidos: $receivedData");
+          notifyListeners();
         },
         onDone: () {
           _isConnected = false;

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:proyect_orga/Provider/bluetooth_provider.dart';
@@ -14,9 +15,11 @@ class BoardScreen extends StatefulWidget {
 class _BoardScreenState extends State<BoardScreen> {
   final Set<int> pressButtons = {};
   late StreamSubscription _connectionSubscription;
-  StreamSubscription? _dataSubscription;
+  late StreamSubscription _dataSubscription;
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   bool _isProcessing = false;
+  String _pendingResponse = '';
 
   void desconectConection() {
     if (!mounted) return;
@@ -40,19 +43,45 @@ class _BoardScreenState extends State<BoardScreen> {
       }
     });
 
-    _dataSubscription = Provider.of<BluetoothProvider>(
-      context,
-      listen: false,
-    ).dataReceivedStream.listen((data) {
-      print(data);
-      print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" + data);
-      // Actualizar UI con los datos recibidos
+    // Suscripción para escuchar los datos recibidos del Bluetooth
+    _dataSubscription = bluetoothProvider.dataReceivedStream.listen((data) {
+      if (_pendingResponse.isNotEmpty) {
+        handleBluetoothResponse(data);
+      }
+    });
+  }
+
+  void handleBluetoothResponse(String response) {
+    if (response == "1") {
+      // Reproducir sonido de explosión para bomba
+      _audioPlayer.play(AssetSource('sounds/explosion.mp3'));
+      if (mounted) {
+        Future.delayed(const Duration(milliseconds: 500), () {
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (BuildContext context) {
+              return GameOverDialog();
+            },
+          );
+        });
+      }
+    } else if (response == "0") {
+      // Reproducir sonido para casilla vacía
+      print("SAFE");
+      _audioPlayer.play(AssetSource('sounds/empty.mp3'));
+    }
+
+    setState(() {
+      _pendingResponse = '';
     });
   }
 
   @override
   void dispose() {
     _connectionSubscription.cancel();
+    _dataSubscription.cancel();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
@@ -77,6 +106,8 @@ class _BoardScreenState extends State<BoardScreen> {
 
       setState(() {
         _isProcessing = true;
+        _pendingResponse =
+            '${index + 1}'; // Guardar qué casilla estamos esperando
       });
 
       // Mostrar diálogo de carga
@@ -91,15 +122,35 @@ class _BoardScreenState extends State<BoardScreen> {
       // Enviar dato al Arduino
       bluetoothProvider.sendData('${index + 1}');
 
-      // Simular tiempo de procesamiento
-      Future.delayed(const Duration(milliseconds: 1000), () {
-        // Cerrar el diálogo de carga
-        Navigator.of(context, rootNavigator: true).pop();
+      // Esperar respuesta con un timeout por seguridad
+      Future.delayed(const Duration(seconds: 5), () {
+        if (_pendingResponse.isNotEmpty) {
+          // Si no recibimos respuesta en 5 segundos, cerramos el diálogo
+          if (mounted) {
+            Navigator.of(context, rootNavigator: true).pop();
+            setState(() {
+              pressButtons.add(index);
+              _isProcessing = false;
+              _pendingResponse = '';
+            });
 
-        setState(() {
-          pressButtons.add(index);
-          _isProcessing = false;
-        });
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('No se recibió respuesta del dispositivo'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+        } else {
+          // Si ya recibimos respuesta, cerramos el diálogo
+          if (mounted && Navigator.of(context, rootNavigator: true).canPop()) {
+            Navigator.of(context, rootNavigator: true).pop();
+            setState(() {
+              pressButtons.add(index);
+              _isProcessing = false;
+            });
+          }
+        }
       });
     }
 
@@ -327,6 +378,80 @@ class ProcessElement extends StatelessWidget {
           Text(
             'Procesando casilla ${index + 1}...',
             style: const TextStyle(color: Colors.white),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class GameOverDialog extends StatelessWidget {
+  const GameOverDialog({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: Colors.black87,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+        side: const BorderSide(color: Colors.red, width: 2),
+      ),
+      title: const Text(
+        '¡GAME OVER!',
+        style: TextStyle(
+          color: Colors.red,
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+        ),
+        textAlign: TextAlign.center,
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.dangerous, color: Colors.red, size: 50),
+          const SizedBox(height: 20),
+          const Text(
+            '¡Has encontrado una bomba!',
+            style: TextStyle(color: Colors.white),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
+            ),
+            onPressed: () {
+              Navigator.of(context).pop(); // Cierra el diálogo
+
+              // Obtener el proveedor de Bluetooth para reiniciar el tablero
+              final bluetoothProvider = Provider.of<BluetoothProvider>(
+                context,
+                listen: false,
+              );
+
+              // Enviar comando de reinicio al Arduino
+              bluetoothProvider.sendData('reinicio');
+
+              // Buscar el contexto de la pantalla principal y reiniciar el tablero
+              final boardState =
+                  context.findAncestorStateOfType<_BoardScreenState>();
+              if (boardState != null) {
+                boardState.setState(() {
+                  boardState.pressButtons.clear();
+                });
+              }
+            },
+            child: const Text(
+              'Reiniciar juego',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
