@@ -4,14 +4,11 @@ import 'package:provider/provider.dart';
 import '../Provider/bluetooth_provider.dart';
 
 class BluetoothOffDialog extends StatelessWidget {
-  const BluetoothOffDialog({Key? key}) : super(key: key);
+  const BluetoothOffDialog({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final bluetooth_set = Provider.of<BluetoothProvider>(
-      context,
-      listen: false,
-    );
+    final bluetoothSet = Provider.of<BluetoothProvider>(context, listen: false);
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Container(
@@ -55,7 +52,7 @@ class BluetoothOffDialog extends StatelessWidget {
                     ),
                   ),
                   onPressed: () async {
-                    bluetooth_set.bluetoothState = true;
+                    bluetoothSet.bluetoothState = true;
                     Navigator.pop(context, true);
                   },
                   child: const Text(

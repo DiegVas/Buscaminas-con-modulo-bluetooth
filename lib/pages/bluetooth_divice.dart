@@ -97,6 +97,7 @@ class DeviceItem extends StatelessWidget {
           Navigator.pop(context, device);
         } else {
           await bluetoothProvider.connectToDevice(device);
+          Navigator.pop(context, device);
         }
       },
       child: Container(

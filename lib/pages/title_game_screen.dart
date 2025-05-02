@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'package:provider/provider.dart';
@@ -25,20 +27,79 @@ class _TitleGameScreenState extends State<TitleGameScreen> {
           builder: (context) => const BluetoothOffDialog(),
         );
       } else {
-        BluetoothDevice device = await showModalBottomSheet(
+        final result = await showModalBottomSheet(
           context: context,
           backgroundColor: Colors.white,
           builder: (context) {
             return BluetoothDeviceList();
           },
         );
+        if (result != null && result is BluetoothDevice) {
+          try {
+            // Muestra un indicador de carga
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder:
+                  (context) => AlertDialog(
+                    title: Text('Conectando...'),
+                    content: Row(
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(width: 20),
+                        Text('Estableciendo conexión con ${result.name}'),
+                      ],
+                    ),
+                  ),
+            );
 
-        if (device == null) return;
+            // Intenta conectar con reintentos automáticos
+            await bluetoothProvider
+                .connectWithRetry(result, maxRetries: 3)
+                .timeout(
+                  Duration(seconds: 15),
+                  onTimeout:
+                      () =>
+                          throw TimeoutException(
+                            'La conexión tardó demasiado tiempo',
+                          ),
+                );
 
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => BoardScreen()),
-        );
+            // Cierra el diálogo de conexión
+            Navigator.of(context, rootNavigator: true).pop();
+
+            // Navega a la siguiente pantalla
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => BoardScreen()),
+            );
+          } catch (e) {
+            // Cierra el diálogo de conexión si está abierto
+            Navigator.of(context, rootNavigator: true).pop();
+
+            // Muestra un mensaje de error específico
+            await showDialog(
+              context: context,
+              builder:
+                  (context) => AlertDialog(
+                    title: Text('Error de conexión'),
+                    content: Text(
+                      'No se pudo conectar al dispositivo: ${e.toString()}\n\nVerifica que el dispositivo esté encendido y dentro del alcance.',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: Text('OK'),
+                      ),
+                      TextButton(
+                        onPressed: () => startConnection(),
+                        child: Text('Reintentar'),
+                      ),
+                    ],
+                  ),
+            );
+          }
+        }
       }
     }
 
