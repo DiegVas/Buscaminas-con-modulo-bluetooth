@@ -86,9 +86,6 @@ class BluetoothProvider extends ChangeNotifier {
       _selectedDevice = device;
       _connectionStateController.add(true); // Emitir evento de conexión
       notifyListeners();
-
-      print("Conectado a: ${device.name}");
-
       // Y modificar la parte de escucha:
       _connection?.input?.listen(
         (data) {
@@ -97,7 +94,6 @@ class BluetoothProvider extends ChangeNotifier {
           _dataReceivedController.add(
             receivedData,
           ); // Emitir datos a los widgets
-          debugPrint("Datos recibidos: $receivedData");
           notifyListeners();
         },
         onDone: () {
@@ -116,7 +112,6 @@ class BluetoothProvider extends ChangeNotifier {
       debugPrint("Error al conectar al dispositivo: $e");
       // Importante: propagar la excepción para que pueda ser manejada
       // por el código que llamó a este método
-      throw e;
     }
   }
 

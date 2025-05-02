@@ -66,10 +66,45 @@ class _BoardScreenState extends State<BoardScreen> {
           );
         });
       }
+
+      // Añadir casilla a pressButtons usando el índice de _pendingResponse
+      int casilla = int.parse(_pendingResponse) - 1;
+      setState(() {
+        pressButtons.add(casilla);
+      });
+
+      // Esperar el comando "reinicio" para reiniciar el tablero
+      _dataSubscription.onData((data) {
+        if (data == "reinicio") {
+          if (mounted) {
+            Navigator.of(
+              context,
+              rootNavigator: true,
+            ).pop(); // Cerrar el diálogo
+            setState(() {
+              pressButtons.clear(); // Limpiar los botones presionados
+              _isProcessing = false; // Desactivar el estado de procesamiento
+            });
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('¡Tablero reiniciado con éxito!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        }
+      });
     } else if (response == "0") {
       // Reproducir sonido para casilla vacía
       print("SAFE");
       _audioPlayer.play(AssetSource('sounds/empty.mp3'));
+
+      // Añadir casilla a pressButtons usando el índice de _pendingResponse
+      int casilla = int.parse(_pendingResponse) - 1;
+      setState(() {
+        pressButtons.add(casilla);
+      });
     }
 
     setState(() {
@@ -123,13 +158,16 @@ class _BoardScreenState extends State<BoardScreen> {
       bluetoothProvider.sendData('${index + 1}');
 
       // Esperar respuesta con un timeout por seguridad
+      // ...existing code...
+      // Esperar respuesta con un timeout por seguridad
       Future.delayed(const Duration(seconds: 5), () {
         if (_pendingResponse.isNotEmpty) {
           // Si no recibimos respuesta en 5 segundos, cerramos el diálogo
           if (mounted) {
             Navigator.of(context, rootNavigator: true).pop();
             setState(() {
-              pressButtons.add(index);
+              // Eliminamos esta línea para no marcar la casilla como presionada
+              // pressButtons.add(index);
               _isProcessing = false;
               _pendingResponse = '';
             });
@@ -152,6 +190,7 @@ class _BoardScreenState extends State<BoardScreen> {
           }
         }
       });
+      // ...existing code...
     }
 
     return Scaffold(
