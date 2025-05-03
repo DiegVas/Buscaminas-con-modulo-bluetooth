@@ -141,7 +141,8 @@ class BluetoothProvider extends ChangeNotifier {
       //print("Conectado a: ${_selectedDevice?.name}");
       debugPrint("Enviando datos: $data a ${_selectedDevice?.name}");
       debugPrint(ascii.encode(data).toString());
-      _connection?.output.add(ascii.encode(data));
+      debugPrint(utf8.encode(data).toString());
+      _connection?.output.add(utf8.encode(data + "0"));
     }
   }
 
