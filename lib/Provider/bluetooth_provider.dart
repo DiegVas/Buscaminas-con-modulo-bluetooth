@@ -148,13 +148,83 @@ class BluetoothProvider extends ChangeNotifier {
     int maxRetries = 3,
   }) async {
     int attempts = 0;
+
+    // Asegúrate que no haya conexiones anteriores antes de empezar
+    if (_isConnected) {
+      disconnect();
+      await Future.delayed(Duration(milliseconds: 500));
+    }
+
     while (attempts < maxRetries) {
       try {
         attempts++;
-        await connectToDevice(device);
-        return; // Conexión exitosa, salir del método
+        debugPrint("Intento de conexión $attempts a ${device.name}");
+
+        // Limpiar estado previo si hay algún error anterior
+        if (_connection != null) {
+          try {
+            _connection?.close();
+            _connection = null;
+          } catch (e) {
+            debugPrint("Error al limpiar conexión previa: $e");
+          }
+        }
+
+        // Pequeña pausa antes de intentar
+        await Future.delayed(Duration(milliseconds: 300));
+
+        // Intentar la conexión
+        _connection = await BluetoothConnection.toAddress(
+          device.address,
+        ).timeout(
+          Duration(seconds: 8),
+          onTimeout: () => throw TimeoutException('Tiempo de espera agotado'),
+        );
+
+        // Verificar si la conexión se estableció correctamente
+        if (_connection?.isConnected ?? false) {
+          _isConnected = true;
+          _selectedDevice = device;
+          _connectionStateController.add(true);
+
+          // Configurar el listener para datos entrantes
+          _connection?.input?.listen(
+            (data) {
+              final receivedData = String.fromCharCodes(data);
+              _lastReceivedData = receivedData;
+              _dataReceivedController.add(receivedData);
+              notifyListeners();
+            },
+            onDone: () {
+              _isConnected = false;
+              _connectionStateController.add(false);
+              notifyListeners();
+            },
+            onError: (error) {
+              debugPrint("Error en la escucha de datos: $error");
+              disconnect();
+            },
+            cancelOnError: true,
+          );
+
+          debugPrint("Conexión exitosa a ${device.name}");
+          notifyListeners();
+          return; // Conexión exitosa, salir del método
+        } else {
+          throw Exception("No se pudo establecer la conexión");
+        }
       } catch (e) {
         debugPrint("Intento $attempts fallido: $e");
+
+        // Limpiar recursos en caso de error
+        if (_connection != null) {
+          try {
+            _connection?.close();
+            _connection = null;
+          } catch (closeError) {
+            debugPrint("Error al cerrar conexión fallida: $closeError");
+          }
+        }
 
         if (attempts >= maxRetries) {
           // Si se alcanzó el número máximo de intentos, propagar el error
@@ -164,7 +234,11 @@ class BluetoothProvider extends ChangeNotifier {
         }
 
         // Esperar antes de reintentar
-        await Future.delayed(Duration(seconds: 2));
+        final waitTime = Duration(seconds: 2 * attempts); // Tiempo progresivo
+        debugPrint(
+          "Esperando ${waitTime.inSeconds} segundos antes del siguiente intento",
+        );
+        await Future.delayed(waitTime);
       }
     }
   }
